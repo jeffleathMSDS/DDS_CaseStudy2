@@ -1,0 +1,201 @@
+---
+title: "DDS Case Study 2"
+author: "Ganesh, Jeff and Stacey"
+date: "November 20, 2018"
+output:
+  html_document: default
+  word_document: default
+---
+
+### Background
+DDSAnalytics is an analytics company that specializes in talent management solutions for Fortune 1000 companies. Talent management is defined as the iterative process of developing and retaining employees. It may include workforce planning, employee training programs, identifying high-potential employees and reducing/preventing voluntary employee turnover (attrition). To gain a competitive edge over its competition, DDSAnalytics is planning to leverage data science for talent management. The executive leadership has identified predicting employee turnover as its first application of data science for talent management.They wanted to conduct an analysis of existing employee data to contain the employee turnover
+DDSAnalytics approached fine data science team from SMU including Jeff Leath, Stacey Smith and Ganesh Kodi to conduct exploratory data analysis to determine factors that lead to attrition using existing employee dataset
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+## Load packages
+library(plyr)
+library(tidyr)
+library(dplyr)
+library(base)
+library(ggplot2)
+library(gridExtra)
+
+
+```
+
+### Code 
+#### Clean the Raw data 
+Convert source data provided by DDAnalytics and convert it to csv. 
+Read the csv file and create dataframe from csv
+
+Following are the structure of the dataset. 
+Noticed that number of rows are 1470 and columns are 35
+
+```{r ddanalytics summary, echo=TRUE}
+## Read the attrition data provided by DDSAnalytics into dataframe
+df_ddanalytics = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
+
+## Dimension of the dataframe which provides number of rows and columns
+dim(df_ddanalytics)
+
+```
+
+Restrict the lengthy column name within 12 characters. Updated column names are 
+below. We will replace lookup columns (like JobSatisfct,EnvSatisfct etc) values with the actual description provided in the dataset. Removed non significant columns and create new dataset for Exploratory Analysis
+
+```{r tidying ddanalytics, echo=TRUE}
+## Change column names of the dataframe within 12 characters
+names(df_ddanalytics) <-c("Age","Attrition","BusinsTravl","DailyRate","Department","DistancHome","Education","EducField","EmployCount","EmployeeNum","EnvSatisfct","Gender","HourlyRate","JobInvolve","JobLevel","JobRole", "JobSatisfct","MaritlStats","MonthIncom","MonthRate", "NumCompWorkd","Over18", "OverTime","SalaryHike","PerfRating","RelSatisfct","StandHours","StockOption","WorkingYear","LastYrTrain","WorkLifeBal","YrsAtCompny","CurRoleYrs","YrslastProm","YrsCurMangr")
+## Convert the parameters to descrption shared in definitions and create new dataset
+df_ddanalytics_updated <- df_ddanalytics %>%
+  mutate(Education = as.factor(if_else(Education == 1,"Below College", if_else(Education == 2, "College", if_else(Education == 3, "Bachelor", if_else(Education == 4, "Master","Doctor")))))
+         ,EnvSatisfct = as.factor(if_else(EnvSatisfct == 1,"Low",if_else(EnvSatisfct == 2, "Medium", if_else(EnvSatisfct == 3, "High", "Very High"))))
+         ,JobInvolve = as.factor(if_else(JobInvolve == 1,"Low",if_else(JobInvolve == 2, "Medium",if_else(JobInvolve == 3, "High", "Very High"))))
+         ,JobSatisfct = as.factor(if_else(JobSatisfct == 1, "Low",if_else(JobSatisfct == 2, "Medium",if_else(JobSatisfct == 3, "High","Very High"))))
+         ,PerfRating = as.factor(if_else(PerfRating == 1, "Low",if_else(PerfRating == 2, "Good", if_else(PerfRating == 3, "Excellent", "Outstanding"))))
+         ,RelSatisfct = as.factor(if_else(RelSatisfct == 1, "Low",if_else(RelSatisfct == 2, "Medium", if_else(RelSatisfct == 3, "High", "Very High"))))
+         ,WorkLifeBal = as.factor(if_else(WorkLifeBal == 1, "Bad",if_else(WorkLifeBal == 2, "Good", if_else(WorkLifeBal == 3, "Better", "Best"))))
+   )%>% select(-EmployCount, -EmployeeNum, -Over18, -StandHours, -StockOption, -JobLevel)
+summary(df_ddanalytics_updated)
+```
+
+Above data provides high level view of dataset. Attrition rate of DDAnalytics with current data is 237/1470 i.e 16.1%
+
+#### Preliminary Analysis
+As part of the preliminary analysis, found that dataset doesn't have under age (<18 years age) data. Also, noticed that maximum age in the dataset is of 60 years. Considering this as permitted age and disregard the notion of age outlier in the dataset.
+```{r ddanalytics prelim analysis, echo=TRUE}
+max(df_ddanalytics$Age)
+min(df_ddanalytics$Age)
+```
+
+Identified the 7 important explanatory variables with (Age, MonthlyIncome, JobSatisfaction, DailyRate, PercentSalaryHike, WorkLifeBalance, YearsInCurrentRole, YearsSinceLastPromotion, TotalWorkingYears, RelationshipSatisfaction) with response variable as Attrition. 
+Created seperate datset based on these important varaibles.  Descriptive Statistics of these variables provided below.
+
+```{r ddanalytics descriptive total, echo=TRUE}
+## Create sub data frame of limited variables
+dfanalytics <- data.frame(df_ddanalytics$Age,df_ddanalytics$MonthIncom,df_ddanalytics$JobSatisfct,df_ddanalytics$DailyRate,df_ddanalytics$SalaryHike,df_ddanalytics$WorkLifeBal,df_ddanalytics$CurRoleYrs,df_ddanalytics$YrslastProm,df_ddanalytics$WorkingYear,df_ddanalytics$RelSatisfct, df_ddanalytics$Attrition)
+## Adding column names for the sub data frame
+names(dfanalytics) <- c("Age","MonthIncom","JobSatisfct","DailyRate","SalaryHike","WorkLifeBal","CurRoleYrs","YrslastProm","WorkingYear","RelSatisfct","Attrition")
+dfanalytics_attr <- subset(dfanalytics, Attrition == "Yes")
+dfanalytics <- dfanalytics[-c(11)]
+dfanalytics_attr <- dfanalytics_attr[-c(11)]
+## Create table of statistics of all
+stattable <- do.call(data.frame, 
+           list(mean = apply(dfanalytics, 2, mean),
+                standdev = apply(dfanalytics, 2, sd),
+                median = apply(dfanalytics, 2, median),
+                min = apply(dfanalytics, 2, min),
+                max = apply(dfanalytics, 2, max),
+                length = apply(dfanalytics, 2, length)))
+## Display the statistics of each variables
+stattable
+```
+
+We have taken Age and Income for plotting histogram. Plot shows that Age distribution is somewhat normal though there is little bit of right skewed. But, More right skewed grapgh of Monthly Income of the employees shows that non normal distribution. Also there is presence of outlier in the range of 20000. Monthly Inbcome should be transformed to curb the skewness.
+
+```{r histogram ddanalytics, echo=TRUE}
+## Histogram of Age
+hist(dfanalytics$Age, xlab = "Age", main = "Histogram of Age", col="lightgreen")
+## Histogram of Monthly Income
+hist(dfanalytics$MonthIncom, xlab = "Monthly Income", main = "Histogram of Monthly Income", col ="lightblue" )
+
+```
+
+Frequencies of the Gender, Education and Occupation are below.
+```{r Frequency DDAnalytics, echo=TRUE}
+## Frequency of the Gender
+df_ddanalytics_updated %>% group_by(Gender) %>%  summarise(Freq = n()) 
+## Frequency of the Education
+df_ddanalytics_updated %>% group_by(Education) %>%  summarise(Freq = n()) 
+## Frequency of the Occupation
+df_ddanalytics_updated %>% group_by(JobRole) %>%  summarise(Freq = n()) 
+
+```
+
+Counts of Management positions are listed below. We assumed that Management positions consists of Manager / Director Job Role. 
+```{r Management Count DDAnalytics Attrition, echo=TRUE}
+df_ddanalytics_updated %>% filter(JobRole == "Manager" | JobRole == "Research Director" | JobRole == "Manufacturing Director"  ) %>% group_by(JobRole) %>%  summarise(Freq = n()) 
+```
+
+#### Deeper Analysis and Visualization
+As part of the deeper analysis, we will analyse each variable independently by creating bar charts. Bar charts will be displayed in descending order
+```{r ddanalytics updated deeper analysis, echo=TRUE, warning=FALSE}
+grid.arrange(
+df_ddanalytics_updated %>% group_by(Age) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(Age,levels = Age[order(-counts)]), y = counts)) +xlab("Age") + geom_histogram(stat = 'identity', binwidth = 5,fill = "violet")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+
+df_ddanalytics_updated %>% group_by(DistancHome) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(DistancHome,levels = DistancHome[order(-counts)]), y = counts)) +xlab("Distance From Home") + geom_histogram(stat = 'identity', binwidth = 5,fill = "lightblue")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+ ncol = 1, nrow = 2)
+
+grid.arrange(
+df_ddanalytics_updated %>% group_by(NumCompWorkd) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(NumCompWorkd,levels = NumCompWorkd[order(-counts)]), y = counts)) +xlab("Number of companies worked") + geom_histogram(stat = 'identity', binwidth = 2,fill = "orange")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+
+df_ddanalytics_updated %>% group_by(WorkingYear) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(WorkingYear,levels = WorkingYear[order(-counts)]), y = counts)) +xlab("Total Working Years") + geom_histogram(stat = 'identity', binwidth = 4,fill = "lightgreen")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),  
+ ncol = 1, nrow = 2)
+grid.arrange(
+      ggplot(df_ddanalytics_updated) + geom_histogram(aes(MonthIncom), binwidth = 1000, fill = "violet",col = "black")+xlab("Monthly Income") +theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(YrsAtCompny) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(YrsAtCompny,levels = YrsAtCompny[order(-counts)]), y = counts)) +xlab("Total Working Years") + geom_histogram(stat = 'identity', fill = "orange")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+ncol = 1, nrow = 2)
+grid.arrange(
+  df_ddanalytics_updated %>% group_by(CurRoleYrs) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(CurRoleYrs,levels = CurRoleYrs[order(-counts)]), y = counts)) +xlab("Years in Current Role") + geom_histogram(stat = 'identity', fill = "lightgreen")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(YrslastProm) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(YrslastProm,levels = YrslastProm[order(-counts)]), y = counts)) +xlab("Years Since Last Promotion") + geom_histogram(stat = 'identity', fill = "lightblue")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+
+ncol = 1, nrow = 2)
+grid.arrange(
+  df_ddanalytics_updated %>% group_by(YrsCurMangr) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(YrsCurMangr,levels = YrsCurMangr[order(-counts)]), y = counts)) +xlab("Years with current manager") + geom_histogram(stat = 'identity', fill = "brown")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(SalaryHike) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(SalaryHike,levels = SalaryHike[order(-counts)]), y = counts)) +xlab("Percent Salary Hike") + geom_histogram(stat = 'identity', fill = "yellow")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+
+ ncol = 1, nrow = 2)
+
+grid.arrange(
+  df_ddanalytics_updated %>% group_by(Education) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(Education,levels = Education[order(-counts)]), y = counts)) +xlab("Education") + geom_histogram(stat = 'identity', fill = "violet")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(EducField) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(EducField,levels = EducField[order(-counts)]), y = counts)) +xlab("Education Field") + geom_histogram(stat = 'identity', fill = "lightblue")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+  
+  df_ddanalytics_updated %>% group_by(RelSatisfct) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(RelSatisfct,levels = RelSatisfct[order(-counts)]), y = counts)) +xlab("Relationship Satisfaction") + geom_histogram(stat = 'identity', fill = "lightgreen")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(WorkLifeBal) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(WorkLifeBal,levels = WorkLifeBal[order(-counts)]), y = counts)) +xlab("Work life Balance") + geom_histogram(stat = 'identity', fill = "orange")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+  
+  df_ddanalytics_updated %>% group_by(BusinsTravl) %>% summarise(counts = n()) %>% ggplot(aes(x = factor(BusinsTravl,levels = BusinsTravl[order(-counts)]), y = counts)) +xlab("Business Travel") + geom_histogram(stat = 'identity', fill = "red")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+    
+    df_ddanalytics_updated %>% group_by(EnvSatisfct) %>% summarise(counts = n()) %>%ggplot(aes(x = factor(EnvSatisfct,levels = EnvSatisfct[order(-counts)]), y = counts)) +xlab("Environment Satisfaction") + geom_histogram(stat = 'identity', fill = "yellow")+ theme(axis.text.x = element_text(angle = 90, hjust = 1)),
+
+ ncol = 3, nrow = 2)
+```
+
+As part of the deeper analysis, we will check the relationship between age and income
+
+```{r ddanalytics age and monthly histogram, echo=TRUE}
+
+## Scatterplot between Age and Income 
+ggplot(df_ddanalytics_updated, aes(Age,MonthIncom,color=Gender))+geom_point()+ggtitle("Relation of Age vs Monthly Income")+labs(x="Age", y="Income")
+
+```
+Above scatter plot between Age and Monthly Income shows that there is positive linear corelation between Age and Income. 
+Below linear regression summary shows that there is significance relation between Age and Income. Gender category doesn't have any signifiance in the model
+
+```{r ddanalytics age income summary, echo=TRUE}
+## Summary of linear regression model of Age and Income and combined with Gender
+dd_ageincome.lm <- lm(Age~MonthIncom*Gender, data=df_ddanalytics_updated)
+summary(dd_ageincome.lm)
+
+```
+
+```{r ddanalytics age vs job satisfaction, echo=TRUE}
+## Scatterplot between Age and Job Satisfaction 
+ggplot(df_ddanalytics_updated, aes(Age,JobSatisfct,color=Gender))+geom_point()+ggtitle("Relation of Age vs Job Satisfaction")+labs(x="Age", y="Job Satisfaction")
+
+```
+
+Above scatter plot between Age and Job Satisfaction shows that there is no linear corelation between Age and Job Satisfaction 
+Below linear regression summary shows that there is no significance relation between Age and Job Satisfaction. Gender category doesn't have any signifiance in the model
+
+```{r ddanalytics age jobsatisafction summary, echo=TRUE}
+## Summary of linear regression model of Age and Jobsatisfaction and combined with Gender
+dd_agejobsatisfact.lm <- lm(Age~JobSatisfct*Gender, data=df_ddanalytics_updated)
+summary(dd_agejobsatisfact.lm)
+
+```
