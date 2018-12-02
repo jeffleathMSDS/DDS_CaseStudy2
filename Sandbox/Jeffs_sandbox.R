@@ -9,6 +9,8 @@ library(dplyr)
 library(base)
 library(ggplot2)
 library(gridExtra)
+library(mlbench)
+library(caret)
 
 d1 = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
 
@@ -36,7 +38,24 @@ df_ddanalytics_updated <- df_ddanalytics %>%
          ,JobSatisfct = as.factor(if_else(JobSatisfct == 1, "Low",if_else(JobSatisfct == 2, "Medium",if_else(JobSatisfct == 3, "High","Very High"))))
          ,PerfRating = as.factor(if_else(PerfRating == 1, "Low",if_else(PerfRating == 2, "Good", if_else(PerfRating == 3, "Excellent", "Outstanding"))))
          ,RelSatisfct = as.factor(if_else(RelSatisfct == 1, "Low",if_else(RelSatisfct == 2, "Medium", if_else(RelSatisfct == 3, "High", "Very High"))))
+         ,Attrition = as.integer(if_else(Attrition == "Yes", 1, 0))
+         ,BusinessTravel = as.factor(if_else(BusinessTravel == "Travel_Frequently",2,if_else(BusinessTravel == "Travel_Rarely", 1, 0)))
          ,WorkLifeBal = as.factor(if_else(WorkLifeBal == 1, "Bad",if_else(WorkLifeBal == 2, "Good", if_else(WorkLifeBal == 3, "Better", "Best"))))
-  )%>% select(-EmployCount, -EmployeeNum, -Over18, -StandHours, -StockOption, -JobLevel)
+  )%>% select(-EmployCount, -EmployeeNum, -Over18, -JobLevel)
 summary(df_ddanalytics_updated)
+str(df_ddanalytics_updated)
+#Test data Fram with only numeric
+d3=df_ddanalytics_updated
+str(d3)
+d5<- d3[,c(2,4,6,11,16:18,20,23:26,29:31)]
+head(d5)
+str(d5)
 
+# calculate correlation matrix
+cm <- cor(d5$Attrition[,1:14])
+# summarize the correlation matrix
+summary(cm)
+# find attributes that are highly corrected (ideally >0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
