@@ -9,13 +9,13 @@ Smith, Stacey <stacey@mail.smu.edu>
 Leath, Jeff <jleath@mail.smu.edu>
 
 Source files used:
-x
+CaseStudy2-data.csv (located in the Source directory)
 
 Technology:
 Project is built using r, RMarkdown and knitr
 
 Source Code:
-x
+CaseStudy2-data.rmd (primary knitr code - located in the Source directory)
 
 Open-source library used are:
 plyr
@@ -25,6 +25,7 @@ base
 ggplot2
 
 Generated Result file:
-x
+DDSCaseStudy2.html (product of the primary knitr code - located in the repo root directory)
+DDSCaseStudy2.pptx (team presentation to client) (located in the Target directory)
 
 Instruction: Using R Studio, run source code and generate html by clicking "Knit to Html" option
