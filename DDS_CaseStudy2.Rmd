@@ -20,6 +20,7 @@ library(dplyr)
 library(base)
 library(ggplot2)
 library(gridExtra)
+library(sqldf)
 
 
 ```
@@ -201,7 +202,7 @@ summary(dd_agejobsatisfact.lm)
 ```
 ## The Plots Show that attrition employees were likely to be single and worked more overtime.
 ```{r compare Marital Status and Overtime with Attrition and Non Attition Employees, echo=TRUE}
-library(sqldf)
+
 df_ddanalytics = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
 attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'Yes'")
 no_attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'No'")
