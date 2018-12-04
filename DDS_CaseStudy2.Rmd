@@ -199,3 +199,70 @@ dd_agejobsatisfact.lm <- lm(Age~JobSatisfct*Gender, data=df_ddanalytics_updated)
 summary(dd_agejobsatisfact.lm)
 
 ```
+## The Plots Show that attrition employees were likely to be single and worked more overtime.
+```{r compare Marital Status and Overtime with Attrition and Non Attition Employees}
+library(sqldf)
+df_ddanalytics = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
+attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'Yes'")
+no_attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'No'")
+#summary(attrition_Employees)
+
+df_summary1 <-
+  attrition_Employees                          %>% # Pipe df into group_by
+  group_by(MaritalStatus)              %>% # grouping by 'type' column
+  summarise(name_count = n())     # calculate the name count for each group
+
+df_summary2 <-
+  no_attrition_Employees                          %>% # Pipe df into group_by
+  group_by(MaritalStatus)              %>% # grouping by 'type' column
+  summarise(name_count = n())     # calculate the name count for each group
+
+
+df_summary1
+df_summary2
+## (1) Plot pre summarized data: 'df_summary'.
+plot1 <- ggplot(df_summary1, aes(MaritalStatus, name_count)) +  #
+  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+  ggtitle("Attrition Maritial Status") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Overtime") +
+  ylab("Count")
+
+plot2 <- ggplot(df_summary2, aes(MaritalStatus, name_count)) +  #
+  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+  ggtitle("Non Attrition Maritial Status") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Overtime") +
+  ylab("Count")
+
+###################################################################################################
+df_summary3 <-
+  attrition_Employees                          %>% # Pipe df into group_by
+  group_by(OverTime)              %>% # grouping by 'type' column
+  summarise(name_count = n())     # calculate the name count for each group
+
+df_summary4 <-
+  no_attrition_Employees                          %>% # Pipe df into group_by
+  group_by(OverTime)              %>% # grouping by 'type' column
+  summarise(name_count = n())     # calculate the name count for each group
+
+
+df_summary3
+df_summary4
+## (1) Plot pre summarized data: 'df_summary'.
+plot3 <- ggplot(df_summary3, aes(OverTime, name_count)) +  #
+  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+  ggtitle("Attrition Overtime") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Overtime") +
+  ylab("Count")
+
+plot4 <- ggplot(df_summary4, aes(OverTime, name_count)) +  #
+  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+  ggtitle("Non Attrition Overtime") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Overtime") +
+  ylab("Count")
+
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2)
+```
