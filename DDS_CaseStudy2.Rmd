@@ -200,12 +200,11 @@ summary(dd_agejobsatisfact.lm)
 
 ```
 ## The Plots Show that attrition employees were likely to be single and worked more overtime.
-```{r compare Marital Status and Overtime with Attrition and Non Attition Employees}
+```{r compare Marital Status and Overtime with Attrition and Non Attition Employees, echo=TRUE}
 library(sqldf)
 df_ddanalytics = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
 attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'Yes'")
 no_attrition_Employees <- sqldf("select * from df_ddanalytics where Attrition = 'No'")
-#summary(attrition_Employees)
 
 df_summary1 <-
   attrition_Employees                          %>% # Pipe df into group_by
@@ -218,18 +217,16 @@ df_summary2 <-
   summarise(name_count = n())     # calculate the name count for each group
 
 
-df_summary1
-df_summary2
 ## (1) Plot pre summarized data: 'df_summary'.
-plot1 <- ggplot(df_summary1, aes(MaritalStatus, name_count)) +  #
-  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+plot1 <- ggplot(df_summary1, aes(MaritalStatus, name_count, fill=MaritalStatus)) +  #
+  geom_bar(stat = 'identity')+              # stat='identity' is used for summarized data.
   ggtitle("Attrition Maritial Status") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab("Overtime") +
   ylab("Count")
 
-plot2 <- ggplot(df_summary2, aes(MaritalStatus, name_count)) +  #
-  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+plot2 <- ggplot(df_summary2, aes(MaritalStatus, name_count, fill=MaritalStatus)) +  #
+  geom_bar(stat = 'identity')+              # stat='identity' is used for summarized data.
   ggtitle("Non Attrition Maritial Status") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab("Overtime") +
@@ -247,22 +244,67 @@ df_summary4 <-
   summarise(name_count = n())     # calculate the name count for each group
 
 
-df_summary3
-df_summary4
 ## (1) Plot pre summarized data: 'df_summary'.
-plot3 <- ggplot(df_summary3, aes(OverTime, name_count)) +  #
-  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+plot3 <- ggplot(df_summary3, aes(OverTime, name_count, fill=OverTime)) +  #
+  geom_bar(stat = 'identity')+              # stat='identity' is used for summarized data.
   ggtitle("Attrition Overtime") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab("Overtime") +
   ylab("Count")
 
-plot4 <- ggplot(df_summary4, aes(OverTime, name_count)) +  #
-  geom_bar(stat = 'identity',fill="blue")+              # stat='identity' is used for summarized data.
+plot4 <- ggplot(df_summary4, aes(OverTime, name_count, fill=OverTime)) +  #
+  geom_bar(stat = 'identity')+              # stat='identity' is used for summarized data.
   ggtitle("Non Attrition Overtime") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab("Overtime") +
   ylab("Count")
 
 grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2)
+```
+## The Plots and T-Test to show inequality in montly income between Attrition and Non-Attrition Employees
+```{r The Plots and T-Test to show inequality in montly income between Attrition and Non-Attrition Employees, echo=TRUE}
+df_ddanalytics = read.csv("Source/CaseStudy2-data.csv", header = TRUE)
+names(df_ddanalytics) <-c("Age","Attrition","BusinsTravl","DailyRate","Department","DistancHome","Education","EducField","EmployCount","EmployeeNum","EnvSatisfct","Gender","HourlyRate","JobInvolve","JobLevel","JobRole", "JobSatisfct","MaritlStats","MonthIncom","MonthRate", "NumCompWorkd","Over18", "OverTime","SalaryHike","PerfRating","RelSatisfct","StandHours","StockOption","WorkingYear","LastYrTrain","WorkLifeBal","YrsAtCompny","CurRoleYrs","YrslastProm","YrsCurMangr")
+dfanalytics <- data.frame(df_ddanalytics$Age,df_ddanalytics$MonthIncom,df_ddanalytics$JobSatisfct,df_ddanalytics$DailyRate,df_ddanalytics$SalaryHike,df_ddanalytics$WorkLifeBal,df_ddanalytics$CurRoleYrs,df_ddanalytics$YrslastProm,df_ddanalytics$WorkingYear,df_ddanalytics$RelSatisfct, df_ddanalytics$Attrition)
+##Summary of Attrition Employees
+summary(df_ddanalytics %>% filter(Attrition =="Yes") %>% .$MonthIncom)
+
+##Summary of Non-Attrition Employees
+summary(df_ddanalytics %>% filter(Attrition =="No") %>% .$MonthIncom)
+
+##Boxplot of Monthly Income Attrition vs Non-Attrition
+ggplot(df_ddanalytics, aes(Attrition, MonthIncom, fill=Attrition)) +
+  geom_boxplot() +
+  ggtitle("Monthly Income") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+##Histogram of Monthly Income Attrition vs Non-Attrition
+p1 <- ggplot(df_ddanalytics, aes(MonthIncom)) +
+  geom_histogram(fill = "blue", color = "grey30") +
+  ggtitle("Plot of Employees Monthly Income") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  facet_wrap(~ Attrition)
+
+##Histogram of Log(Monthly Income) Attrition vs Non-Attrition
+p2 <- ggplot(df_ddanalytics, aes(MonthIncom)) +
+  geom_histogram(fill = "red", color = "grey30") +
+  ggtitle("Plot of Employees Log(Monthly Income)") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  facet_wrap(~ Attrition) +
+  scale_x_log10()
+
+##Plot the Histograms
+grid.arrange(p1, p2, nrow = 2)
+
+options(scipen=999) #disable scientific notation
+##T-Test to test difference in the montly income means between Attrition vs Non-Attrition
+t.test(MonthIncom ~ Attrition, data = df_ddanalytics)
+
+##T-Test to test difference in the log(montly income) means between Attrition vs Non-Attrition
+t.test(log(MonthIncom) ~ Attrition, data = df_ddanalytics)
+
+##Non Parametric Test
+wilcox.test(MonthIncom ~ Attrition, data = df_ddanalytics)
+
+
 ```
